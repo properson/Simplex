@@ -26,7 +26,7 @@ end
 function Simplex.Debug(_, msgType, ...)
 	if not DEBUG_ENABLED then return end
 	local parsed = parseDebugString(...)
-	
+
 	if msgType then
 		if msgType:lower() == "error" then
 			error(parsed)
@@ -36,15 +36,15 @@ function Simplex.Debug(_, msgType, ...)
 			return
 		end
 	end
-	
+
 	print(parsed)
 end
 function Simplex.GetHook(self, name)
 	local callback = self.Callbacks:FindFirstChild(name)
-	
+
 	if callback then
 		local hook = callback:FindFirstChild(HOOK_NAME)
-		
+
 		if hook then
 			return require(hook)
 		end
@@ -52,7 +52,7 @@ function Simplex.GetHook(self, name)
 end
 
 local function initializeEnvironment(name)
-	local success, err = pcall(function()
+	local _, err = pcall(function()
 		for _, resource in ipairs(SIMPLEX_FOLDERS[name:lower()]:GetChildren()) do
 			coroutine.wrap(function()
 				if resource:IsA("ModuleScript") then
@@ -62,7 +62,7 @@ local function initializeEnvironment(name)
 			end)()
 		end
 	end)
-	
+
 	if not err then
 		Simplex:Debug(nil, "Successfully registered resources: args[1]:"..name)
 	else
@@ -82,7 +82,7 @@ local function initializeAll()
 			end
 		end
 	end
-	
+
 	init(Simplex.Server)
 	init(Simplex.Shared)
 end
@@ -90,14 +90,14 @@ end
 local interactives = {}
 local function registerInteractives()
 	local folder = SIMPLEX_FOLDERS.shared.Interactives
-	
+
 	for _, module in ipairs(folder:GetChildren()) do
 		if module:IsA("ModuleScript") then
 			local required = require(module)
 			interactives[module.Name] = required
 		end
 	end
-	
+
 	Simplex:Debug(nil, "Registered shared interactives")
 end
 

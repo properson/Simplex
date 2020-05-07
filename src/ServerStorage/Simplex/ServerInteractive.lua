@@ -7,6 +7,7 @@ local ServerInteractive = {}
 ServerInteractive.__index = ServerInteractive
 
 local Players = game:GetService("Players")
+local CollectionService = game:GetService("CollectionService")
 
 local Simplex
 local Event
@@ -14,7 +15,7 @@ local CancelActivatingEvent -- If multiple players were activating the interacti
 -- then we would call all clients to stop activating it.
 
 local SIMPLEX_CALLBACKS
-local DEFAULT_RANGE = 10
+local DEFAULT_RANGE = 12.5
 
 
 function ServerInteractive.new(part, configuration, id)
@@ -25,6 +26,7 @@ function ServerInteractive.new(part, configuration, id)
 		Finished = Event.new(),
 		_configuration = nil,
 		_hook = nil,
+		_isReplication = false,
 	}, ServerInteractive)
 
 	-- Receive the actual configuration
@@ -53,6 +55,16 @@ function ServerInteractive:HookPass(player)
 	return didReturn and "Failed" or "Pass"
 end
 
+function ServerInteractive:SetReplicationState(state)
+	if state and not self._isReplication then
+		CollectionService:AddTag(self.Part, "Simplex:Disabled")
+		self._isReplication = true
+	elseif not state and self._isReplication then
+		CollectionService:RemoveTag(self.Part, "Simplex:Disabled")
+		self._isReplication = false
+	end
+end
+
 function ServerInteractive:Activate(player)
 	-- Extra check (just in case)
 	if not self:CanPlayerActivate(player) then
@@ -60,6 +72,8 @@ function ServerInteractive:Activate(player)
 	end
 
 	self.Ready = false
+	self.Finished:Fire()
+	self:SetReplicationState(true)
 
 	-- The first-to-activate client can disable the interface by itself
 	for _, otherPlayer in ipairs(Players:GetPlayers()) do
@@ -99,8 +113,10 @@ function ServerInteractive:CanPlayerActivate(player)
 	end
 
 	-- Hook-based checks
-	if self:HookPass(player) == "Failed" then
-		return false
+	if self._hook then
+		if self:HookPass(player) == "Failed" then
+			return false
+		end
 	end
 
 	return true

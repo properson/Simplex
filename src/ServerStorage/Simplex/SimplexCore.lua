@@ -37,8 +37,13 @@ local Simplex
 local FinishInteractiveEvent
 local ServerInteractive
 local Interactives
-local COLLECTION_SERVICE_TAG = "Interaction"
 
+local COLLECTION_SERVICE_TAG = "Interaction"
+local PREFIXES = {
+	Name = "Name:"
+}
+
+-- Attempts to receive an interaction from it's assigned part.
 local function findInteractiveByPart(part)
 	for _, data in pairs(interactiveCache) do
 		if data.Part == part then
@@ -57,6 +62,19 @@ local function onInstanceRemoved(instance)
 			interactiveCache[entry.Object] = nil
 		end
 	end
+end
+
+-- Wraps necessary CollectionService tags for a part.
+local function wrapTags(part, interactiveData)
+	CollectionService:AddTag(part, COLLECTION_SERVICE_TAG)
+	--[[
+		Name is a tag reserved for use from clients. It will help with determinating interaction data.
+
+		Why not ValueObjects:
+			1. They can cause unnecessary instance clutter.
+			2. CollectionService tags are more recent and easy to use.
+	]]
+	CollectionService:AddTag(part, string.format("%s:%s", PREFIXES.Name, interactiveData.Name))
 end
 
 function SimplexCore:Setup()
@@ -84,7 +102,7 @@ function SimplexCore:Create(part, interactiveType, finishCallback)
 	assignedTable.Object = newInteractive
 	assignedTable.Part = part
 	interactiveCache[newInteractive] = assignedTable
-	CollectionService:AddTag(part, COLLECTION_SERVICE_TAG)
+	wrapTags(assignedTable.Part)
 
 	if type(finishCallback) == "function" then
 		newInteractive.Finished:Connect(function(player)

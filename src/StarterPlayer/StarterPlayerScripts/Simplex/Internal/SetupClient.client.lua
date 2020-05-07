@@ -26,7 +26,7 @@ end
 function Simplex.Debug(_, msgType, ...)
 	if not DEBUG_ENABLED then return end
 	local parsed = parseDebugString(...)
-	
+
 	if msgType then
 		if msgType:lower() == "error" then
 			error(parsed)
@@ -36,14 +36,15 @@ function Simplex.Debug(_, msgType, ...)
 			return
 		end
 	end
-	
+
 	print(parsed)
 end
+Simplex:Debug("warn", "Debug mode is ON. To stop sending these types of messages, set DEBUG_ENABLED to false in both internal handlers.")
 function Simplex.Wrap(_, module)
 	if not module:IsA("ModuleScript") then
 		return
 	end
-	
+
 	if type(module.Init) == "function" then
 		module:Init()
 	end
@@ -62,7 +63,7 @@ local function initializeEnvironment(name)
 			end
 		end
 	end)
-	
+
 	if not err then
 		Simplex:Debug(nil, "Successfully registered resources: args[1]:"..name)
 	else
@@ -72,17 +73,19 @@ end
 
 local function initializeAll()
 	local function init(obj)
-		for str, object in pairs(obj) do
+		for _, object in pairs(obj) do
 			if type(object) == "table" then
 				if type(object.Init) == "function" then
-					object:Init(Simplex)
+					coroutine.wrap(function()
+						object:Init(Simplex)
+					end)()
 				end
 			else
 				init(object)
 			end
 		end
 	end
-	
+
 	init(Simplex.Client)
 	init(Simplex.Shared)
 end
@@ -90,14 +93,14 @@ end
 local interactives = {}
 local function registerInteractives()
 	local folder = SIMPLEX_FOLDERS.shared.Interactives
-	
+
 	for _, module in ipairs(folder:GetChildren()) do
 		if module:IsA("ModuleScript") then
 			local required = require(module)
 			interactives[module.Name] = required
 		end
 	end
-	
+
 	Simplex:Debug(nil, "Registered shared interactives")
 end
 
@@ -105,6 +108,7 @@ initializeEnvironment("Shared")
 initializeEnvironment("Client")
 registerInteractives()
 
-_G.Simplex.Interactives = interactives
+Simplex.Interactives = interactives
+Simplex.Network = SIMPLEX_FOLDERS.shared:WaitForChild("Network")
 
 initializeAll()
